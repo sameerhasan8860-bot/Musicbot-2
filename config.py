@@ -19,8 +19,8 @@ class Config:
         self.SESSION2 = getenv("SESSION2", None)
         self.SESSION3 = getenv("SESSION3", None)
 
-        self.SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL") or "https://t.me/AloneUpdates"
-        self.SUPPORT_CHAT = getenv("SUPPORT_CHAT") or "https://t.me/AloneBotSupport"
+        self.SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL") or "https://t.me/SASTA_DEVLOPER_HU"
+        self.SUPPORT_CHAT = getenv("SUPPORT_CHAT") or "https://t.me/SASTA_DEVLOPER"
 
         self.AUTO_END: bool = getenv("AUTO_END", False)
         self.AUTO_LEAVE: bool = getenv("AUTO_LEAVE", False)
