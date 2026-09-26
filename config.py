@@ -34,8 +34,9 @@ class Config:
             if url and "batbin.me" in url
         ]
         self.DEFAULT_THUMB = getenv("DEFAULT_THUMB", "https://te.legra.ph/file/3e40a408286d4eda24191.jpg")
-        self.PING_IMG = getenv("PING_IMG") or "https://files.catbox.moe/haagg2.png"
-        self.START_IMG = getenv("START_IMG") or "https://files.catbox.moe/zvziwk.jpg"
+        self.HELP_URL = getenv("HELP_URL") or "https://kommodo.ai/i/RQ3R6u4BafenaHTgI9ab"
+        self.PING_IMG = getenv("PING_IMG") or "https://kommodo.ai/i/i9HrkhRmXc600JQPdc2V"
+        self.START_IMG = getenv("START_IMG") or "https://kommodo.ai/i/5GYZemjp5ZQCBPXr3r6V"
 
     def check(self):
         missing = [
