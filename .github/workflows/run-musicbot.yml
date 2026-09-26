@@ -37,6 +37,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg build-essential libffi-dev libssl-dev
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.9.6"
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
