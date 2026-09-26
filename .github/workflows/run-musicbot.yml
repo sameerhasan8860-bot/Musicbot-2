@@ -82,9 +82,9 @@ jobs:
           AUTO_END: ${{ secrets.AUTO_END }}
           AUTO_LEAVE: ${{ secrets.AUTO_LEAVE }}
           VIDEO_PLAY: ${{ secrets.VIDEO_PLAY }}
-          QUEUE_LIMIT: ${{ secrets.QUEUE_LIMIT }}
-          DURATION_LIMIT: ${{ secrets.DURATION_LIMIT }}
-          PLAYLIST_LIMIT: ${{ secrets.PLAYLIST_LIMIT }}
+          QUEUE_LIMIT: ${{ secrets.QUEUE_LIMIT || '50' }}
+          DURATION_LIMIT: ${{ secrets.DURATION_LIMIT || '5400' }}
+          PLAYLIST_LIMIT: ${{ secrets.PLAYLIST_LIMIT || '20' }}
           COOKIES_URL: ${{ secrets.COOKIES_URL }}
           DEFAULT_THUMB: ${{ secrets.DEFAULT_THUMB }}
           PING_IMG: ${{ secrets.PING_IMG }}
