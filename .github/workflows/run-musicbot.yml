@@ -113,6 +113,7 @@ jobs:
           DEFAULT_THUMB: ${{ secrets.DEFAULT_THUMB }}
           PING_IMG: ${{ secrets.PING_IMG }}
           START_IMG: ${{ secrets.START_IMG }}
+          HELP_URL: ${{ secrets.HELP_URL }}
           SHRUTI_API_URL: "http://127.0.0.1:8765"
           SHRUTI_API_KEY: ""
           PYTHONUNBUFFERED: "1"
