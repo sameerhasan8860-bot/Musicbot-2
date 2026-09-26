@@ -66,6 +66,25 @@ jobs:
             fi
           done
 
+      - name: Start temporary local download API
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/local-api.log"
+          nohup python local_api_server.py > "$RUNNER_TEMP/local-api.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/local-api.pid"
+
+          for i in {1..30}; do
+            if curl -fsS "http://127.0.0.1:8765/health" >/dev/null; then
+              echo "Temporary local download API is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "::error::Temporary local download API failed to start."
+          cat "$RUNNER_TEMP/local-api.log" || true
+          exit 1
       - name: Start bot
         env:
           API_ID: ${{ secrets.API_ID }}
@@ -89,8 +108,8 @@ jobs:
           DEFAULT_THUMB: ${{ secrets.DEFAULT_THUMB }}
           PING_IMG: ${{ secrets.PING_IMG }}
           START_IMG: ${{ secrets.START_IMG }}
-          SHRUTI_API_URL: ${{ secrets.SHRUTI_API_URL || 'https://api01.shrutibots.site' }}
-          SHRUTI_API_KEY: ${{ secrets.SHRUTI_API_KEY }}
+          SHRUTI_API_URL: "http://127.0.0.1:8765"
+          SHRUTI_API_KEY: ""
           PYTHONUNBUFFERED: "1"
           PYTHONFAULTHANDLER: "1"
         shell: bash
