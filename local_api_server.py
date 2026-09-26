@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 from pathlib import Path
+import traceback
 
 from aiohttp import web
 import yt_dlp
@@ -36,6 +37,9 @@ async def download(video_id: str, media_type: str) -> Path | None:
     loop = asyncio.get_running_loop()
 
     def work():
+        cookie_files = sorted(Path("AloneX/cookies").glob("*.txt"))
+        cookie_file = str(cookie_files[0]) if cookie_files else None
+
         if media_type == "audio":
             opts = {
                 "format": "bestaudio/best",
@@ -59,10 +63,15 @@ async def download(video_id: str, media_type: str) -> Path | None:
                 "no_warnings": True,
             }
 
+        if cookie_file:
+            opts["cookiefile"] = cookie_file
+
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([source])
-        except Exception:
+        except Exception as exc:
+            print(f"yt-dlp download failed for {video_id}: {exc}", flush=True)
+            traceback.print_exc()
             return None
 
         return target if target.exists() and target.stat().st_size > 0 else None
