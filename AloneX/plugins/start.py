@@ -5,6 +5,7 @@
 
 import asyncio
 from pyrogram import enums, filters, types
+from pyrogram.errors import PeerIdInvalid
 
 from AloneX import app, config, db, lang
 from AloneX.helpers import buttons, utils
@@ -13,8 +14,9 @@ from AloneX.helpers import buttons, utils
 @app.on_message(filters.command(["help"]) & filters.private & ~app.bl_users)
 @lang.language()
 async def _help(_, m: types.Message):
-    await m.reply_text(
-        text=m.lang["help_menu"],
+    await m.reply_photo(
+        photo=config.HELP_URL,
+        caption=m.lang["help_menu"],
         reply_markup=buttons.help_markup(m.lang),
     )
 
@@ -36,11 +38,21 @@ async def start(_, message: types.Message):
     )
 
     key = buttons.start_key(message.lang, private)
-    await message.reply_photo(
-        photo=config.START_IMG,
-        caption=_text,
-        reply_markup=key,
-    )
+    try:
+        await message.reply_photo(
+            photo=config.START_IMG,
+            caption=_text,
+            reply_markup=key,
+        )
+    except PeerIdInvalid:
+        if private:
+            await message.reply_photo(
+                photo=config.START_IMG,
+                caption=_text,
+                reply_markup=buttons.start_key(message.lang, False),
+            )
+        else:
+            raise
 
     if private:
         if await db.is_user(message.from_user.id):
