@@ -1,0 +1,159 @@
+name: Run Musicbot-2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ALONE
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: musicbot-2
+  cancel-in-progress: true
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 355
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ALONE
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg build-essential libffi-dev libssl-dev
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt
+          python - <<'PY'
+          import yt_dlp
+          print("yt-dlp:", yt_dlp.version.__version__)
+          import pytgcalls
+          print("PyTgCalls: available")
+          PY
+
+      - name: Validate required secrets
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          LOGGER_ID: ${{ secrets.LOGGER_ID }}
+          OWNER_ID: ${{ secrets.OWNER_ID }}
+          SESSION: ${{ secrets.SESSION }}
+        run: |
+          set -euo pipefail
+          for name in API_ID API_HASH BOT_TOKEN MONGO_URL LOGGER_ID OWNER_ID SESSION; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required secret: $name"
+              exit 1
+            fi
+          done
+
+      - name: Start bot
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          LOGGER_ID: ${{ secrets.LOGGER_ID }}
+          OWNER_ID: ${{ secrets.OWNER_ID }}
+          SESSION: ${{ secrets.SESSION }}
+          SESSION2: ${{ secrets.SESSION2 }}
+          SESSION3: ${{ secrets.SESSION3 }}
+          SUPPORT_CHANNEL: ${{ secrets.SUPPORT_CHANNEL }}
+          SUPPORT_CHAT: ${{ secrets.SUPPORT_CHAT }}
+          AUTO_END: ${{ secrets.AUTO_END }}
+          AUTO_LEAVE: ${{ secrets.AUTO_LEAVE }}
+          VIDEO_PLAY: ${{ secrets.VIDEO_PLAY }}
+          QUEUE_LIMIT: ${{ secrets.QUEUE_LIMIT }}
+          DURATION_LIMIT: ${{ secrets.DURATION_LIMIT }}
+          PLAYLIST_LIMIT: ${{ secrets.PLAYLIST_LIMIT }}
+          COOKIES_URL: ${{ secrets.COOKIES_URL }}
+          DEFAULT_THUMB: ${{ secrets.DEFAULT_THUMB }}
+          PING_IMG: ${{ secrets.PING_IMG }}
+          START_IMG: ${{ secrets.START_IMG }}
+          PYTHONUNBUFFERED: "1"
+          PYTHONFAULTHANDLER: "1"
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/musicbot.log"
+          nohup bash start > "$RUNNER_TEMP/musicbot.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/musicbot.pid"
+          echo "Musicbot-2 started with process PID $(cat "$RUNNER_TEMP/musicbot.pid")"
+
+      - name: Verify bot ready
+        env:
+          PID_FILE: ${{ runner.temp }}/musicbot.pid
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..120}; do
+            if [[ -f "$PID_FILE" ]]; then
+              pid="$(cat "$PID_FILE")"
+              if ! kill -0 "$pid" 2>/dev/null; then
+                echo "::error::Musicbot-2 exited during startup."
+                echo "===== LAST 200 BOT LOG LINES ====="
+                tail -n 200 "$RUNNER_TEMP/musicbot.log" || true
+                exit 1
+              fi
+              if (( i >= 30 )); then
+                echo "Musicbot-2 process is alive after startup wait."
+                exit 0
+              fi
+            fi
+            sleep 1
+          done
+          echo "::error::Musicbot-2 did not become ready."
+          echo "===== LAST 200 BOT LOG LINES ====="
+          tail -n 200 "$RUNNER_TEMP/musicbot.log" || true
+          exit 1
+
+      - name: Monitor and schedule successor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PID_FILE: ${{ runner.temp }}/musicbot.pid
+        shell: bash
+        run: |
+          set -euo pipefail
+          touch "$RUNNER_TEMP/musicbot.log"
+          tail -n 0 -F "$RUNNER_TEMP/musicbot.log" &
+          tail_pid=$!
+          trap 'kill "$tail_pid" 2>/dev/null || true' EXIT
+
+          started="$(date +%s)"
+          dispatched=false
+          while true; do
+            pid="$(cat "$PID_FILE")"
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "::error::Musicbot-2 process stopped."
+              echo "===== LAST 200 BOT LOG LINES ====="
+              tail -n 200 "$RUNNER_TEMP/musicbot.log" || true
+              exit 1
+            fi
+
+            age=$(( $(date +%s) - started ))
+            if (( age >= 20100 && dispatched == false )); then
+              echo "Starting successor runner before the 6-hour limit..."
+              gh workflow run run-musicbot.yml --repo "$GITHUB_REPOSITORY" --ref ALONE
+              dispatched=true
+            fi
+            sleep 30
+          done
