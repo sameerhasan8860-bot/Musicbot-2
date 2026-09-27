@@ -38,35 +38,7 @@ async def start(_, message: types.Message):
         else message.lang["start_gp"].format(app.name)
     )
 
-    if private:
-        key = buttons.start_key(message.lang, False)
-        owner_button = InlineKeyboardButton(
-            "Owner",
-            url=f"tg://user?id={config.OWNER_ID}",
-        )
-        try:
-            await app.get_users(config.OWNER_ID)
-            owner_button = InlineKeyboardButton(
-                "Owner",
-                user_id=config.OWNER_ID,
-            )
-        except PeerIdInvalid:
-            pass
-
-        rows = [list(row) for row in key.inline_keyboard]
-        rows.append(
-            [
-                owner_button,
-                InlineKeyboardButton(
-                    "Source",
-                    url="https://github.com",
-                ),
-            ]
-        )
-        key = InlineKeyboardMarkup(rows)
-
-    else:
-        key = buttons.start_key(message.lang, False)
+    key = buttons.start_key(message.lang, private)
 
     await message.reply_photo(
         photo=config.START_IMG,
