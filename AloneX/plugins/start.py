@@ -6,6 +6,7 @@
 import asyncio
 from pyrogram import enums, filters, types
 from pyrogram.errors import PeerIdInvalid
+from pyrogram.types import InlineKeyboardButton
 
 from AloneX import app, config, db, lang
 from AloneX.helpers import buttons, utils
@@ -46,10 +47,23 @@ async def start(_, message: types.Message):
         )
     except PeerIdInvalid:
         if private:
+            key = buttons.start_key(message.lang, False)
+            key.inline_keyboard.append(
+                [
+                    InlineKeyboardButton(
+                        "Owner",
+                        url=f"tg://user?id={config.OWNER_ID}",
+                    ),
+                    InlineKeyboardButton(
+                        "Source",
+                        url="https://github.com",
+                    ),
+                ]
+            )
             await message.reply_photo(
                 photo=config.START_IMG,
                 caption=_text,
-                reply_markup=buttons.start_key(message.lang, False),
+                reply_markup=key,
             )
         else:
             raise
