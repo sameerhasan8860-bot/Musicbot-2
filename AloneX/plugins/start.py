@@ -22,13 +22,6 @@ async def _help(_, m: types.Message):
     )
 
 
-@app.on_callback_query(filters.regex("^start_owner$"))
-async def start_owner(_, callback_query: types.CallbackQuery):
-    await callback_query.answer(
-        url=f"tg://user?id={config.OWNER_ID}"
-    )
-
-
 @app.on_message(filters.command(["start"]))
 @lang.language()
 async def start(_, message: types.Message):
@@ -59,7 +52,7 @@ async def start(_, message: types.Message):
                 [
                     InlineKeyboardButton(
                         "Owner",
-                        callback_data="start_owner",
+                        url=f"tg://user?id={config.OWNER_ID}",
                     ),
                     InlineKeyboardButton(
                         "Source",
@@ -84,6 +77,7 @@ async def start(_, message: types.Message):
         if await db.is_chat(message.chat.id):
             return
         await utils.send_log(message, True)
+        await db.add_chat(message.chat.id)
 
 
 @app.on_message(filters.command(["playmode", "settings"]) & filters.group & ~app.bl_users)
