@@ -55,6 +55,46 @@ async def _autoplay_toggle(_, query: types.CallbackQuery):
         pass
 
 
+@app.on_callback_query(filters.regex(r"^(?:seekback_15|seek_15)$") & ~app.bl_users)
+@lang.language()
+@can_manage_vc
+async def _seek_15(_, query: types.CallbackQuery):
+    chat_id = query.message.chat.id
+
+    if not await db.get_call(chat_id):
+        return await query.answer(query.lang["not_playing"], show_alert=True)
+
+    media = queue.get_current(chat_id)
+    if not media or not media.duration_sec:
+        return await query.answer(query.lang["play_seek_no_dur"], show_alert=True)
+
+    if not media.file_path:
+        return await query.answer(query.lang["not_playing"], show_alert=True)
+
+    seconds = 15
+    is_backward = query.data == "seekback_15"
+
+    if is_backward:
+        start_from = max(1, media.time - seconds)
+    else:
+        if media.time + seconds + 10 > media.duration_sec:
+            return await query.answer(
+                f"Cannot seek forward {seconds} seconds — near the end.",
+                show_alert=True,
+            )
+        start_from = media.time + seconds
+
+    try:
+        await query.answer()
+        await anon.play_media(chat_id, query.message, media, start_from)
+        media.time = start_from
+        await query.message.edit_reply_markup(
+            reply_markup=await controls_with_autoplay(chat_id)
+        )
+    except Exception as ex:
+        await query.answer(f"Seek failed: {ex}", show_alert=True)
+
+
 @app.on_callback_query(filters.regex("controls") & ~app.bl_users)
 @lang.language()
 @can_manage_vc
