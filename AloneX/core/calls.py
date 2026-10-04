@@ -12,6 +12,7 @@ from pytgcalls.pytgcalls_session import PyTgCallsSession
 
 from AloneX import app, config, db, lang, logger, queue, userbot, yt
 from AloneX.helpers import Media, Track, buttons, thumb
+from AloneX.helpers.autoplay_ui import controls_with_autoplay
 
 
 class TgCall(PyTgCalls):
@@ -88,7 +89,7 @@ class TgCall(PyTgCalls):
                     media.duration,
                     media.user,
                 )
-                keyboard = buttons.controls(chat_id)
+                keyboard = await controls_with_autoplay(chat_id)
                 try:
                     await message.edit_media(
                         media=InputMediaPhoto(
