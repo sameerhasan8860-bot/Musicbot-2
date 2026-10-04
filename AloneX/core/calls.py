@@ -75,6 +75,7 @@ class TgCall(PyTgCalls):
             ffmpeg_parameters=f"-ss {seek_time}" if seek_time > 1 else None,
         )
         try:
+            await db.add_autoplay_history(chat_id, media.id)
             await client.play(
                 chat_id=chat_id,
                 stream=stream,
