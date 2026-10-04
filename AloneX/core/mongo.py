@@ -22,6 +22,7 @@ class MongoDB:
         self.admin_list = {}
         self.active_calls = {}
         self.admin_play = []
+        self.autoplay = {}
         self.blacklisted = []
         self.cmd_delete = []
         self.notified = []
@@ -257,6 +258,21 @@ class MongoDB:
         await self.chatsdb.update_one(
             {"_id": chat_id},
             {"$set": {"admin_play": not remove}},
+            upsert=True,
+        )
+
+    # AUTOPLAY METHODS
+    async def get_autoplay(self, chat_id: int) -> bool:
+        if chat_id not in self.autoplay:
+            doc = await self.chatsdb.find_one({"_id": chat_id})
+            self.autoplay[chat_id] = bool(doc.get("autoplay", False)) if doc else False
+        return self.autoplay[chat_id]
+
+    async def set_autoplay(self, chat_id: int, enabled: bool) -> None:
+        self.autoplay[chat_id] = enabled
+        await self.chatsdb.update_one(
+            {"_id": chat_id},
+            {"$set": {"autoplay": enabled}},
             upsert=True,
         )
 
