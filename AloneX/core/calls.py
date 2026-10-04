@@ -13,6 +13,7 @@ from pytgcalls.pytgcalls_session import PyTgCallsSession
 from AloneX import app, config, db, lang, logger, queue, userbot, yt
 from AloneX.helpers import Media, Track, buttons, thumb
 from AloneX.helpers.autoplay_ui import controls_with_autoplay
+from AloneX.helpers.autoplay import candidates as autoplay_candidates
 
 
 class TgCall(PyTgCalls):
@@ -133,24 +134,64 @@ class TgCall(PyTgCalls):
         await self.play_media(chat_id, msg, media)
 
 
-    async def _get_autoplay_track(self, chat_id: int, last_media: Media | Track, message_id: int):
+    async def _get_autoplay_track(
+        self, chat_id: int, last_media: Media | Track, message_id: int
+    ):
         if not last_media or not await db.get_autoplay(chat_id):
             return None
 
         history = await db.get_autoplay_history(chat_id)
+
+        try:
+            recommendations = await autoplay_candidates(
+                last_media if isinstance(last_media, Track) else Track(
+                    id=last_media.id,
+                    channel_name="",
+                    duration=last_media.duration,
+                    duration_sec=last_media.duration_sec,
+                    title=last_media.title,
+                    url=last_media.url,
+                    video=last_media.video,
+                ),
+                limit=10,
+            )
+        except Exception as ex:
+            logger.error(f"[autoplay] recommendation engine failed in {chat_id}: {ex}")
+            recommendations = []
+
+        for candidate in recommendations:
+            if not candidate or not candidate.id:
+                continue
+            if candidate.id == last_media.id or candidate.id in history:
+                continue
+            candidate.user = "♫ Autoplay"
+            await db.add_autoplay_history(chat_id, candidate.id)
+            logger.info(
+                f"[autoplay] selected recommendation {candidate.title} ({candidate.id})"
+            )
+            return candidate
+
+        # Same fallback idea as the reference: search related text when
+        # Mix/related recommendations are unavailable.
         queries = [
-            f"{last_media.title} {getattr(last_media, 'channel_name', '')}".strip(),
-            f"{last_media.title} similar songs",
-            f"{last_media.title} songs",
+            last_media.title,
+            f"{last_media.title} song",
         ]
+        channel = getattr(last_media, "channel_name", "")
+        if channel:
+            queries.insert(1, f"{last_media.title} {channel}")
 
         for query in queries:
             if not query:
                 continue
             try:
-                candidate = await yt.search(query, message_id, video=getattr(last_media, "video", False))
+                candidate = await yt.search(
+                    query,
+                    message_id,
+                    video=getattr(last_media, "video", False),
+                )
             except Exception as ex:
-                logger.error(f"[autoplay] search failed in {chat_id}: {ex}")
+                logger.error(f"[autoplay] search fallback failed in {chat_id}: {ex}")
                 continue
 
             if not candidate or candidate.id == last_media.id or candidate.id in history:
@@ -158,7 +199,9 @@ class TgCall(PyTgCalls):
 
             candidate.user = "♫ Autoplay"
             await db.add_autoplay_history(chat_id, candidate.id)
-            logger.info(f"[autoplay] selected {candidate.title} ({candidate.id}) for {chat_id}")
+            logger.info(
+                f"[autoplay] selected fallback {candidate.title} ({candidate.id})"
+            )
             return candidate
 
         return None
