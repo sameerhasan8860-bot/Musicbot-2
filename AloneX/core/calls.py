@@ -132,18 +132,66 @@ class TgCall(PyTgCalls):
         await self.play_media(chat_id, msg, media)
 
 
+    async def _get_autoplay_track(self, chat_id: int, last_media: Media | Track, message_id: int):
+        if not last_media or not await db.get_autoplay(chat_id):
+            return None
+
+        history = await db.get_autoplay_history(chat_id)
+        queries = [
+            f"{last_media.title} {getattr(last_media, 'channel_name', '')}".strip(),
+            f"{last_media.title} similar songs",
+            f"{last_media.title} songs",
+        ]
+
+        for query in queries:
+            if not query:
+                continue
+            try:
+                candidate = await yt.search(query, message_id, video=getattr(last_media, "video", False))
+            except Exception as ex:
+                logger.error(f"[autoplay] search failed in {chat_id}: {ex}")
+                continue
+
+            if not candidate or candidate.id == last_media.id or candidate.id in history:
+                continue
+
+            candidate.user = "♫ Autoplay"
+            await db.add_autoplay_history(chat_id, candidate.id)
+            logger.info(f"[autoplay] selected {candidate.title} ({candidate.id}) for {chat_id}")
+            return candidate
+
+        return None
+
     async def play_next(self, chat_id: int) -> None:
+        last_media = queue.get_current(chat_id)
         media = queue.get_next(chat_id)
+
         try:
-            if media.message_id:
+            if media and media.message_id:
                 await app.delete_messages(
                     chat_id=chat_id,
                     message_ids=media.message_id,
                     revoke=True,
                 )
                 media.message_id = 0
-        except:
+        except Exception:
             pass
+
+        if not media and last_media and await db.get_autoplay(chat_id):
+            msg = await app.send_message(
+                chat_id=chat_id,
+                text="♫ Finding next song...",
+            )
+            auto_media = await self._get_autoplay_track(chat_id, last_media, msg.id)
+
+            if auto_media:
+                queue.force_add(chat_id, auto_media)
+                media = queue.get_current(chat_id)
+            else:
+                try:
+                    await msg.edit_text("♫ Autoplay could not find a next song.")
+                except Exception:
+                    pass
 
         if not media:
             return await self.stop(chat_id)
