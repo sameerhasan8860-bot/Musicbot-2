@@ -10,6 +10,7 @@ from pyrogram import enums, errors, filters, types
 
 from AloneX import anon, app, config, db, lang, logger, queue, tasks, userbot, yt
 from AloneX.helpers import buttons
+from AloneX.helpers.autoplay_ui import controls_with_autoplay
 
 
 @app.on_message(filters.video_chat_started, group=19)
@@ -95,7 +96,7 @@ async def update_timer(length=10):
                 await app.edit_message_reply_markup(
                     chat_id=chat_id,
                     message_id=message_id,
-                    reply_markup=buttons.controls(
+                    reply_markup=await controls_with_autoplay(
                         chat_id=chat_id, timer=timer, remove=remove
                     ),
                 )
@@ -116,7 +117,7 @@ async def vc_watcher(sleep=15):
                     sent = await app.edit_message_reply_markup(
                         chat_id=chat_id,
                         message_id=media.message_id,
-                        reply_markup=buttons.controls(
+                        reply_markup=await controls_with_autoplay(
                             chat_id=chat_id, status=_lang["stopped"], remove=True
                         ),
                     )
