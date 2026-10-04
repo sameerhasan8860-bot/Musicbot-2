@@ -7,6 +7,7 @@ from pyrogram import filters, types
 
 from AloneX import anon, app, db, lang
 from AloneX.helpers import buttons, can_manage_vc
+from AloneX.helpers.autoplay_ui import controls_with_autoplay
 
 
 @app.on_message(filters.command(["resume"]) & filters.group & ~app.bl_users)
@@ -22,5 +23,5 @@ async def _resume(_, m: types.Message):
     await anon.resume(m.chat.id)
     await m.reply_text(
         text=m.lang["play_resumed"].format(m.from_user.mention),
-        reply_markup=buttons.controls(m.chat.id),
+        reply_markup=await controls_with_autoplay(m.chat.id),
     )
