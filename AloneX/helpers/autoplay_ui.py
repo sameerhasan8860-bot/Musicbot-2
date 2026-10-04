@@ -4,9 +4,19 @@ from AloneX import db
 from AloneX.helpers import buttons
 
 
-def _append_autoplay(markup: InlineKeyboardMarkup, label: str, callback_data: str):
+def _replace_add_me_with_autoplay(
+    markup: InlineKeyboardMarkup, label: str, callback_data: str
+):
     rows = [list(row) for row in markup.inline_keyboard]
-    rows.append([InlineKeyboardButton(label, callback_data=callback_data)])
+    autoplay_row = [InlineKeyboardButton(label, callback_data=callback_data)]
+
+    # buttons.controls() puts the Add Me row immediately before Updates/Close.
+    # Replace that row so Autoplay occupies the exact same position.
+    if len(rows) >= 2:
+        rows[-2] = autoplay_row
+    else:
+        rows.append(autoplay_row)
+
     return InlineKeyboardMarkup(rows)
 
 
@@ -26,7 +36,9 @@ async def controls_with_autoplay(
         timer=timer,
         remove=remove,
     )
-    return _append_autoplay(markup, await autoplay_label(chat_id), "autoplay:toggle")
+    return _replace_add_me_with_autoplay(
+        markup, await autoplay_label(chat_id), "autoplay:toggle"
+    )
 
 
 async def help_with_autoplay(chat_id: int, lang, back: bool = False):
