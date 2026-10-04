@@ -11,6 +11,27 @@ def _append_autoplay(markup: InlineKeyboardMarkup, label: str, callback_data: st
     return InlineKeyboardMarkup(rows)
 
 
+def _insert_seek_buttons_above_autoplay(markup: InlineKeyboardMarkup):
+    rows = [list(row) for row in markup.inline_keyboard]
+    seek_row = [
+        InlineKeyboardButton(
+            "-𝟣𝟧ˢ", callback_data="seekback_15", style=ButtonStyle.PRIMARY
+        ),
+        InlineKeyboardButton(
+            "𝟣𝟧ˢ+", callback_data="seek_15", style=ButtonStyle.PRIMARY
+        ),
+    ]
+
+    # Auto Play is the row immediately before Updates/Close.
+    # Put the 15-second seek controls directly above Auto Play.
+    if len(rows) >= 2:
+        rows.insert(len(rows) - 2, seek_row)
+    else:
+        rows.append(seek_row)
+
+    return InlineKeyboardMarkup(rows)
+
+
 def _replace_add_me_with_autoplay(
     markup: InlineKeyboardMarkup, label: str, callback_data: str
 ):
@@ -51,9 +72,10 @@ async def controls_with_autoplay(
         timer=timer,
         remove=remove,
     )
-    return _replace_add_me_with_autoplay(
+    markup = _replace_add_me_with_autoplay(
         markup, await autoplay_label(chat_id), "autoplay:toggle"
     )
+    return _insert_seek_buttons_above_autoplay(markup)
 
 
 async def help_with_autoplay(chat_id: int, lang, back: bool = False):
