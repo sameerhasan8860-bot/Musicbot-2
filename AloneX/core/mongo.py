@@ -23,6 +23,7 @@ class MongoDB:
         self.active_calls = {}
         self.admin_play = []
         self.autoplay = {}
+        self.autoplay_history = {}
         self.blacklisted = []
         self.cmd_delete = []
         self.notified = []
@@ -273,6 +274,28 @@ class MongoDB:
         await self.chatsdb.update_one(
             {"_id": chat_id},
             {"$set": {"autoplay": enabled}},
+            upsert=True,
+        )
+
+    async def get_autoplay_history(self, chat_id: int) -> list[str]:
+        if chat_id not in self.autoplay_history:
+            doc = await self.chatsdb.find_one({"_id": chat_id}, {"autoplay_history": 1})
+            history = doc.get("autoplay_history", []) if doc else []
+            self.autoplay_history[chat_id] = list(history)[-30:]
+        return list(self.autoplay_history[chat_id])
+
+    async def add_autoplay_history(self, chat_id: int, track_id: str) -> None:
+        if not track_id:
+            return
+        history = await self.get_autoplay_history(chat_id)
+        if track_id in history:
+            history.remove(track_id)
+        history.append(track_id)
+        history = history[-30:]
+        self.autoplay_history[chat_id] = history
+        await self.chatsdb.update_one(
+            {"_id": chat_id},
+            {"$set": {"autoplay_history": history}},
             upsert=True,
         )
 
