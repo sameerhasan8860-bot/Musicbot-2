@@ -17,7 +17,7 @@ def _replace_add_me_with_autoplay(
     rows = [list(row) for row in markup.inline_keyboard]
     autoplay_row = [
         InlineKeyboardButton(
-            label, callback_data=callback_data, style=ButtonStyle.SUCCESS
+            label, callback_data=callback_data, style=ButtonStyle.PRIMARY
         )
     ]
 
@@ -66,7 +66,7 @@ async def help_with_autoplay(chat_id: int, lang, back: bool = False):
             InlineKeyboardButton(
                 "ᴧᴜᴛσᴘʟᴧʏ",
                 callback_data="help autoplay",
-                style=ButtonStyle.SUCCESS,
+                style=ButtonStyle.PRIMARY,
             )
         ]
     )
@@ -81,7 +81,7 @@ async def queue_with_autoplay(chat_id: int, status: str, playing: bool):
             InlineKeyboardButton(
                 await autoplay_label(chat_id),
                 callback_data="autoplay:toggle",
-                style=ButtonStyle.SUCCESS,
+                style=ButtonStyle.PRIMARY,
             )
         ]
     )
