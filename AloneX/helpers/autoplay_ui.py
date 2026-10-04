@@ -56,6 +56,6 @@ async def help_with_autoplay(chat_id: int, lang, back: bool = False):
 
 async def queue_with_autoplay(chat_id: int, status: str, playing: bool):
     markup = buttons.queue_markup(chat_id, status, playing)
-    return _append_autoplay(
-        markup, await autoplay_label(chat_id), "autoplay:toggle"
-    )
+    rows = [list(row) for row in markup.inline_keyboard]
+    rows.append([InlineKeyboardButton(await autoplay_label(chat_id), callback_data="autoplay:toggle", style=ButtonStyle.SUCCESS)])
+    return InlineKeyboardMarkup(rows)
