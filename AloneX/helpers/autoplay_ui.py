@@ -1,4 +1,4 @@
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import ButtonStyle, InlineKeyboardButton, InlineKeyboardMarkup
 
 from AloneX import db
 from AloneX.helpers import buttons
@@ -14,7 +14,7 @@ def _replace_add_me_with_autoplay(
     markup: InlineKeyboardMarkup, label: str, callback_data: str
 ):
     rows = [list(row) for row in markup.inline_keyboard]
-    autoplay_row = [InlineKeyboardButton(label, callback_data=callback_data)]
+    autoplay_row = [InlineKeyboardButton(label, callback_data=callback_data, style=ButtonStyle.SUCCESS)]
 
     # buttons.controls() puts the Add Me row immediately before Updates/Close.
     # Replace that row so Autoplay occupies the exact same position.
@@ -27,7 +27,7 @@ def _replace_add_me_with_autoplay(
 
 
 async def autoplay_label(chat_id: int) -> str:
-    return ("🟡 ᴧᴜᴛσᴘʟᴧʏ: єηᴧʙʟєᴅ" if await db.get_autoplay(chat_id) else "🟡 ᴧᴜᴛσᴘʟᴧʏ: ᴅɪsᴧʙʟєᴅ")
+    return ("ᴧᴜᴛσᴘʟᴧʏ: єηᴧʙʟєᴅ" if await db.get_autoplay(chat_id) else "ᴧᴜᴛσᴘʟᴧʏ: ᴅɪsᴧʙʟєᴅ")
 
 
 async def controls_with_autoplay(
@@ -51,7 +51,7 @@ async def help_with_autoplay(chat_id: int, lang, back: bool = False):
     markup = buttons.help_markup(lang, back)
     if back:
         return markup
-    return _append_autoplay(markup, "🟡 ᴧᴜᴛσᴘʟᴧʏ", "help autoplay")
+    rows = [list(row) for row in markup.inline_keyboard]\n    rows.append([InlineKeyboardButton("ᴧᴜᴛσᴘʟᴧʏ", callback_data="help autoplay", style=ButtonStyle.SUCCESS)])\n    return InlineKeyboardMarkup(rows)
 
 
 async def queue_with_autoplay(chat_id: int, status: str, playing: bool):
