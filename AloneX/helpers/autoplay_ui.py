@@ -27,7 +27,7 @@ def _replace_add_me_with_autoplay(
 
 
 async def autoplay_label(chat_id: int) -> str:
-    return ("♫ ᴧᴜᴛσᴘʟᴧʏ: єηᴧʙʟєᴅ" if await db.get_autoplay(chat_id) else "♫ ᴧᴜᴛσᴘʟᴧʏ: ᴅɪsᴧʙʟєᴅ")
+    return ("🟡 ᴧᴜᴛσᴘʟᴧʏ: єηᴧʙʟєᴅ" if await db.get_autoplay(chat_id) else "🟡 ᴧᴜᴛσᴘʟᴧʏ: ᴅɪsᴧʙʟєᴅ")
 
 
 async def controls_with_autoplay(
@@ -51,7 +51,7 @@ async def help_with_autoplay(chat_id: int, lang, back: bool = False):
     markup = buttons.help_markup(lang, back)
     if back:
         return markup
-    return _append_autoplay(markup, "ᴧᴜᴛσᴘʟᴧʏ", "help autoplay")
+    return _append_autoplay(markup, "🟡 ᴧᴜᴛσᴘʟᴧʏ", "help autoplay")
 
 
 async def queue_with_autoplay(chat_id: int, status: str, playing: bool):
