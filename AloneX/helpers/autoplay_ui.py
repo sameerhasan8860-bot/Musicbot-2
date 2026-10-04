@@ -86,7 +86,7 @@ async def help_with_autoplay(chat_id: int, lang, back: bool = False):
     rows.append(
         [
             InlineKeyboardButton(
-                "🔴 ᴧᴜᴛσᴘʟᴧʏ 🔴",
+                "ᴧᴜᴛσᴘʟᴧʏ",
                 callback_data="help autoplay",
                 style=ButtonStyle.PRIMARY,
             )
