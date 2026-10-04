@@ -9,6 +9,7 @@ from pyrogram import filters, types
 
 from AloneX import anon, app, db, lang, queue, tg, yt
 from AloneX.helpers import admin_check, buttons, can_manage_vc
+from AloneX.helpers.autoplay_ui import controls_with_autoplay
 
 
 @app.on_callback_query(filters.regex("cancel_dl") & ~app.bl_users)
@@ -16,6 +17,24 @@ from AloneX.helpers import admin_check, buttons, can_manage_vc
 async def cancel_dl(_, query: types.CallbackQuery):
     await query.answer()
     await tg.cancel(query)
+
+
+@app.on_callback_query(filters.regex(r"^autoplay:toggle$") & ~app.bl_users)
+@lang.language()
+@admin_check
+async def _autoplay_toggle(_, query: types.CallbackQuery):
+    chat_id = query.message.chat.id
+    enabled = not await db.get_autoplay(chat_id)
+    await db.set_autoplay(chat_id, enabled)
+    state = "ON" if enabled else "OFF"
+    await query.answer(f"Autoplay {state}")
+    try:
+        current = query.message.caption.html if query.message.caption else query.message.text.html
+        await query.edit_message_reply_markup(
+            reply_markup=await controls_with_autoplay(chat_id)
+        )
+    except Exception:
+        pass
 
 
 @app.on_callback_query(filters.regex("controls") & ~app.bl_users)
@@ -106,7 +125,7 @@ async def _controls(_, query: types.CallbackQuery):
                 query.message.caption.html or query.message.text.html,
                 flags=re.DOTALL,
             )
-            keyboard = buttons.controls(
+            keyboard = await controls_with_autoplay(
                 chat_id, status=status if action != "resume" else None
             )
         await query.edit_message_text(
