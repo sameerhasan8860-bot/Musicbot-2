@@ -7,6 +7,7 @@ from pyrogram import filters, types
 
 from AloneX import app, config, db, lang, queue
 from AloneX.helpers import Track, buttons, thumb
+from AloneX.helpers.autoplay_ui import queue_with_autoplay
 
 
 @app.on_message(filters.command(["queue", "playing"]) & filters.group & ~app.bl_users)
@@ -47,7 +48,7 @@ async def _queue_func(_, m: types.Message):
             media=_thumb,
             caption=_text,
         ),
-        reply_markup=buttons.queue_markup(
+        reply_markup=await queue_with_autoplay(
             m.chat.id,
             m.lang["playing"] if _playing else m.lang["paused"],
             _playing,
