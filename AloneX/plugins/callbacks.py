@@ -5,11 +5,11 @@
 
 import re
 
-from pyrogram import filters, types
+from pyrogram import enums, filters, types
 
 from AloneX import anon, app, db, lang, queue, tg, yt
 from AloneX.helpers import admin_check, buttons, can_manage_vc
-from AloneX.helpers.autoplay_ui import controls_with_autoplay
+from AloneX.helpers.autoplay_ui import controls_with_autoplay, help_with_autoplay
 
 
 @app.on_callback_query(filters.regex("cancel_dl") & ~app.bl_users)
@@ -19,17 +19,35 @@ async def cancel_dl(_, query: types.CallbackQuery):
     await tg.cancel(query)
 
 
-@app.on_callback_query(filters.regex(r"^autoplay:toggle$") & ~app.bl_users)
+@app.on_callback_query(filters.regex(r"^autoplay:toggle(?::help)?$") & ~app.bl_users)
 @lang.language()
-@admin_check
 async def _autoplay_toggle(_, query: types.CallbackQuery):
     chat_id = query.message.chat.id
+
+    if query.data == "autoplay:toggle:help":
+        enabled = not await db.get_autoplay(chat_id)
+        await db.set_autoplay(chat_id, enabled)
+        await query.answer(f"Autoplay {'ON' if enabled else 'OFF'}")
+        try:
+            await query.edit_message_reply_markup(
+                reply_markup=await help_with_autoplay(chat_id, query.lang)
+            )
+        except Exception:
+            pass
+        return
+
+    if query.message.chat.type != enums.ChatType.PRIVATE:
+        if query.from_user.id not in app.sudoers:
+            admins = await db.get_admins(chat_id)
+            if query.from_user.id not in admins:
+                return await query.answer(
+                    query.lang["user_no_perms"], show_alert=True
+                )
+
     enabled = not await db.get_autoplay(chat_id)
     await db.set_autoplay(chat_id, enabled)
-    state = "ON" if enabled else "OFF"
-    await query.answer(f"Autoplay {state}")
+    await query.answer(f"Autoplay {'ON' if enabled else 'OFF'}")
     try:
-        current = query.message.caption.html if query.message.caption else query.message.text.html
         await query.edit_message_reply_markup(
             reply_markup=await controls_with_autoplay(chat_id)
         )
@@ -150,7 +168,7 @@ async def _help(_, query: types.CallbackQuery):
     if len(data) == 1:
         return await query.edit_message_text(
             text=query.lang["help_menu"],
-            reply_markup=buttons.help_markup(query.lang)
+            reply_markup=await help_with_autoplay(query.from_user.id, query.lang)
         )
 
     if data[1] == "back":
@@ -166,7 +184,7 @@ async def _help(_, query: types.CallbackQuery):
 
     await query.edit_message_text(
         text=query.lang[f"help_{data[1]}"],
-        reply_markup=buttons.help_markup(query.lang, True),
+        reply_markup=await help_with_autoplay(query.from_user.id, query.lang, True),
     )
 
 
