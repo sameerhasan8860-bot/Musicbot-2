@@ -4,6 +4,12 @@ from AloneX import db
 from AloneX.helpers import buttons
 
 
+def _append_autoplay(markup: InlineKeyboardMarkup, label: str, callback_data: str):
+    rows = [list(row) for row in markup.inline_keyboard]
+    rows.append([InlineKeyboardButton(label, callback_data=callback_data)])
+    return InlineKeyboardMarkup(rows)
+
+
 def _replace_add_me_with_autoplay(
     markup: InlineKeyboardMarkup, label: str, callback_data: str
 ):
