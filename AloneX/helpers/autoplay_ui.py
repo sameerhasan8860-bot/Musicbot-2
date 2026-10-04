@@ -51,7 +51,9 @@ async def help_with_autoplay(chat_id: int, lang, back: bool = False):
     markup = buttons.help_markup(lang, back)
     if back:
         return markup
-    rows = [list(row) for row in markup.inline_keyboard]\n    rows.append([InlineKeyboardButton("ᴧᴜᴛσᴘʟᴧʏ", callback_data="help autoplay", style=ButtonStyle.SUCCESS)])\n    return InlineKeyboardMarkup(rows)
+    rows = [list(row) for row in markup.inline_keyboard]
+    rows.append([InlineKeyboardButton("ᴧᴜᴛσᴘʟᴧʏ", callback_data="help autoplay", style=ButtonStyle.SUCCESS)])
+    return InlineKeyboardMarkup(rows)
 
 
 async def queue_with_autoplay(chat_id: int, status: str, playing: bool):
