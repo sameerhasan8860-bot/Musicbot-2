@@ -9,6 +9,7 @@ from pyrogram.errors import PeerIdInvalid
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from AloneX import app, config, db, lang
+from AloneX.helpers.autoplay_ui import help_with_autoplay
 from AloneX.helpers import buttons, utils
 
 
@@ -18,7 +19,7 @@ async def _help(_, m: types.Message):
     await m.reply_photo(
         photo=config.HELP_URL,
         caption=m.lang["help_menu"],
-        reply_markup=buttons.help_markup(m.lang),
+        reply_markup=await help_with_autoplay(m.from_user.id, m.lang),
     )
 
 
