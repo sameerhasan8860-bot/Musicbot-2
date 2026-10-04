@@ -1,4 +1,5 @@
-from pyrogram.types import ButtonStyle, InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.enums import ButtonStyle
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from AloneX import db
 from AloneX.helpers import buttons
@@ -14,7 +15,11 @@ def _replace_add_me_with_autoplay(
     markup: InlineKeyboardMarkup, label: str, callback_data: str
 ):
     rows = [list(row) for row in markup.inline_keyboard]
-    autoplay_row = [InlineKeyboardButton(label, callback_data=callback_data, style=ButtonStyle.SUCCESS)]
+    autoplay_row = [
+        InlineKeyboardButton(
+            label, callback_data=callback_data, style=ButtonStyle.SUCCESS
+        )
+    ]
 
     # buttons.controls() puts the Add Me row immediately before Updates/Close.
     # Replace that row so Autoplay occupies the exact same position.
@@ -27,7 +32,11 @@ def _replace_add_me_with_autoplay(
 
 
 async def autoplay_label(chat_id: int) -> str:
-    return ("ᴧᴜᴛσᴘʟᴧʏ: єηᴧʙʟєᴅ" if await db.get_autoplay(chat_id) else "ᴧᴜᴛσᴘʟᴧʏ: ᴅɪsᴧʙʟєᴅ")
+    return (
+        "ᴧᴜᴛσᴘʟᴧʏ: єηᴧʙʟєᴅ"
+        if await db.get_autoplay(chat_id)
+        else "ᴧᴜᴛσᴘʟᴧʏ: ᴅɪsᴧʙʟєᴅ"
+    )
 
 
 async def controls_with_autoplay(
@@ -52,12 +61,28 @@ async def help_with_autoplay(chat_id: int, lang, back: bool = False):
     if back:
         return markup
     rows = [list(row) for row in markup.inline_keyboard]
-    rows.append([InlineKeyboardButton("ᴧᴜᴛσᴘʟᴧʏ", callback_data="help autoplay", style=ButtonStyle.SUCCESS)])
+    rows.append(
+        [
+            InlineKeyboardButton(
+                "ᴧᴜᴛσᴘʟᴧʏ",
+                callback_data="help autoplay",
+                style=ButtonStyle.SUCCESS,
+            )
+        ]
+    )
     return InlineKeyboardMarkup(rows)
 
 
 async def queue_with_autoplay(chat_id: int, status: str, playing: bool):
     markup = buttons.queue_markup(chat_id, status, playing)
     rows = [list(row) for row in markup.inline_keyboard]
-    rows.append([InlineKeyboardButton(await autoplay_label(chat_id), callback_data="autoplay:toggle", style=ButtonStyle.SUCCESS)])
+    rows.append(
+        [
+            InlineKeyboardButton(
+                await autoplay_label(chat_id),
+                callback_data="autoplay:toggle",
+                style=ButtonStyle.SUCCESS,
+            )
+        ]
+    )
     return InlineKeyboardMarkup(rows)
