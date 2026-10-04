@@ -9,7 +9,7 @@ from pyrogram import enums, filters, types
 
 from AloneX import anon, app, db, lang, queue, tg, yt
 from AloneX.helpers import admin_check, buttons, can_manage_vc
-from AloneX.helpers.autoplay_ui import controls_with_autoplay, help_with_autoplay
+from AloneX.helpers.autoplay_ui import controls_with_autoplay, help_with_autoplay, queue_with_autoplay
 
 
 @app.on_callback_query(filters.regex("cancel_dl") & ~app.bl_users)
@@ -79,7 +79,7 @@ async def _controls(_, query: types.CallbackQuery):
         await anon.pause(chat_id)
         if qaction:
             return await query.edit_message_reply_markup(
-                reply_markup=buttons.queue_markup(chat_id, query.lang["paused"], False)
+                reply_markup=await queue_with_autoplay(chat_id, query.lang["paused"], False)
             )
         status = query.lang["paused"]
         reply = query.lang["play_paused"].format(user)
@@ -90,7 +90,7 @@ async def _controls(_, query: types.CallbackQuery):
         await anon.resume(chat_id)
         if qaction:
             return await query.edit_message_reply_markup(
-                reply_markup=buttons.queue_markup(chat_id, query.lang["playing"], True)
+                reply_markup=await queue_with_autoplay(chat_id, query.lang["playing"], True)
             )
         reply = query.lang["play_resumed"].format(user)
 
