@@ -59,13 +59,12 @@ class TgCall(PyTgCalls):
             else config.DEFAULT_THUMB
         )
 
-        media_path = media.file_path or media.url
-        if not media_path:
+        if not media.file_path:
             await message.edit_text(_lang["error_no_file"].format(config.SUPPORT_CHAT))
             return await self.play_next(chat_id)
 
-        stream_kwargs = dict(
-            media_path=media_path,
+        stream = types.MediaStream(
+            media_path=media.file_path,
             audio_parameters=types.AudioQuality.HIGH,
             video_parameters=types.VideoQuality.HD_720p,
             audio_flags=types.MediaStream.Flags.REQUIRED,
@@ -76,14 +75,6 @@ class TgCall(PyTgCalls):
             ),
             ffmpeg_parameters=f"-ss {seek_time}" if seek_time > 1 else None,
         )
-        if not media.file_path and media.url:
-            cookie_files = sorted(__import__("pathlib").Path("AloneX/cookies").glob("*.txt"))
-            ytdlp_parameters = "--no-playlist"
-            if cookie_files:
-                ytdlp_parameters += f' --cookies "{cookie_files[0]}"'
-            stream_kwargs["ytdlp_parameters"] = ytdlp_parameters
-
-        stream = types.MediaStream(**stream_kwargs)
         try:
             await db.add_autoplay_history(chat_id, media.id)
             await client.play(
@@ -251,6 +242,14 @@ class TgCall(PyTgCalls):
 
         _lang = await lang.get_lang(chat_id)
         msg = await app.send_message(chat_id=chat_id, text=_lang["play_next"])
+        if not media.file_path:
+            media.file_path = await yt.download(media.id, video=media.video)
+            if not media.file_path:
+                await self.stop(chat_id)
+                return await msg.edit_text(
+                    _lang["error_no_file"].format(config.SUPPORT_CHAT)
+                )
+
         media.message_id = msg.id
         await self.play_media(chat_id, msg, media)
 
