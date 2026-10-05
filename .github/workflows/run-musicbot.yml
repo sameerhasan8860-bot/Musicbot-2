@@ -71,6 +71,43 @@ jobs:
             fi
           done
 
+      - name: Prepare YouTube cookies
+        env:
+          COOKIES_URL: ${{ secrets.COOKIES_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p AloneX/cookies
+          rm -f AloneX/cookies/*.txt
+
+          if [[ -z "${COOKIES_URL:-}" ]]; then
+            echo "No COOKIES_URL configured; YouTube may require authentication."
+            exit 0
+          fi
+
+          index=0
+          for url in $COOKIES_URL; do
+            if [[ "$url" != *"batbin.me"* ]]; then
+              echo "Skipping unsupported cookie URL."
+              continue
+            fi
+            index=$((index + 1))
+            file="AloneX/cookies/cookie-${index}.txt"
+            echo "Downloading YouTube cookie file ${index}..."
+            curl -fsSL --retry 3 --connect-timeout 10 "$url" -o "$file"
+            if [[ ! -s "$file" ]]; then
+              echo "::error::Downloaded cookie file is empty."
+              rm -f "$file"
+              exit 1
+            fi
+          done
+
+          if compgen -G "AloneX/cookies/*.txt" >/dev/null; then
+            echo "YouTube cookie file(s) prepared."
+          else
+            echo "::warning::No usable YouTube cookie file was prepared."
+          fi
+
       - name: Start temporary local download API
         shell: bash
         run: |
