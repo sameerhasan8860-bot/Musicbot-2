@@ -35,6 +35,12 @@ async def play_hndlr(
     video: bool = False,
     url: str = None,
 ) -> None:
+    # Remove the user's /play command as soon as the bot picks up the request.
+    try:
+        await m.delete()
+    except Exception:
+        pass
+
     sent = await m.reply_text(m.lang["play_searching"])
     file = None
     mention = m.from_user.mention
