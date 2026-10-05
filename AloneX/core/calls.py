@@ -77,7 +77,11 @@ class TgCall(PyTgCalls):
             ffmpeg_parameters=f"-ss {seek_time}" if seek_time > 1 else None,
         )
         if not media.file_path and media.url:
-            stream_kwargs["ytdlp_parameters"] = "--no-playlist"
+            cookie_files = sorted(__import__("pathlib").Path("AloneX/cookies").glob("*.txt"))
+            ytdlp_parameters = "--no-playlist"
+            if cookie_files:
+                ytdlp_parameters += f' --cookies "{cookie_files[0]}"'
+            stream_kwargs["ytdlp_parameters"] = ytdlp_parameters
 
         stream = types.MediaStream(**stream_kwargs)
         try:
