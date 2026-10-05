@@ -33,6 +33,21 @@ class TgCall(PyTgCalls):
 
     async def stop(self, chat_id: int) -> None:
         client = await db.get_assistant(chat_id)
+        current = queue.get_current(chat_id)
+
+        # Remove the active song message whenever playback is stopped,
+        # whether stop came from the button, /stop, or an internal error.
+        if current and current.message_id:
+            try:
+                await app.delete_messages(
+                    chat_id=chat_id,
+                    message_ids=current.message_id,
+                    revoke=True,
+                )
+            except Exception:
+                pass
+            current.message_id = 0
+
         try:
             queue.clear(chat_id)
             await db.remove_call(chat_id)
