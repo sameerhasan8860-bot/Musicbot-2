@@ -19,6 +19,7 @@ from AloneX.helpers.autoplay import candidates as autoplay_candidates
 class TgCall(PyTgCalls):
     def __init__(self):
         self.clients = []
+        self._transitioning = set()
 
     async def pause(self, chat_id: int) -> bool:
         client = await db.get_assistant(chat_id)
@@ -53,6 +54,7 @@ class TgCall(PyTgCalls):
     ) -> None:
         client = await db.get_assistant(chat_id)
         _lang = await lang.get_lang(chat_id)
+        media.message_id = message.id
         _thumb = (
             await thumb.generate(media)
             if isinstance(media, Track)
@@ -206,52 +208,85 @@ class TgCall(PyTgCalls):
 
         return None
 
-    async def play_next(self, chat_id: int) -> None:
-        last_media = queue.get_current(chat_id)
-        media = queue.get_next(chat_id)
+    async def play_next(
+        self, chat_id: int, expected_message_id: int | None = None
+    ) -> bool:
+        # Only one transition may run at a time. This prevents double-taps on
+        # Skip (and simultaneous StreamEnded/Skip events) from skipping twice.
+        if chat_id in self._transitioning:
+            return False
+        self._transitioning.add(chat_id)
 
         try:
-            if media and media.message_id:
-                await app.delete_messages(
-                    chat_id=chat_id,
-                    message_ids=media.message_id,
-                    revoke=True,
-                )
-                media.message_id = 0
-        except Exception:
-            pass
+            last_media = queue.get_current(chat_id)
 
-        if not media and last_media and await db.get_autoplay(chat_id):
-            msg = await app.send_message(
-                chat_id=chat_id,
-                text="♫ Finding next song...",
-            )
-            auto_media = await self._get_autoplay_track(chat_id, last_media, msg.id)
+            if expected_message_id is not None:
+                if not last_media or last_media.message_id != expected_message_id:
+                    return False
 
-            if auto_media:
-                queue.force_add(chat_id, auto_media)
-                media = queue.get_current(chat_id)
-            else:
+            media = queue.get_next(chat_id)
+
+            # The message belongs to the song that just finished/skipped.
+            # Delete that old song message before showing the next song.
+            if last_media and last_media.message_id:
                 try:
-                    await msg.edit_text("♫ Autoplay could not find a next song.")
+                    await app.delete_messages(
+                        chat_id=chat_id,
+                        message_ids=last_media.message_id,
+                        revoke=True,
+                    )
+                except Exception:
+                    pass
+                last_media.message_id = 0
+
+            finding_msg = None
+            if not media and last_media and await db.get_autoplay(chat_id):
+                finding_msg = await app.send_message(
+                    chat_id=chat_id,
+                    text="♫ Finding next song...",
+                )
+                auto_media = await self._get_autoplay_track(
+                    chat_id, last_media, finding_msg.id
+                )
+
+                if auto_media:
+                    queue.force_add(chat_id, auto_media)
+                    media = queue.get_current(chat_id)
+                else:
+                    try:
+                        await finding_msg.delete()
+                    except Exception:
+                        pass
+                    return await self.stop(chat_id) or False
+
+            if not media:
+                return await self.stop(chat_id) or False
+
+            # Do not leave the temporary "Finding next song..." message
+            # behind once the next song has been selected.
+            if finding_msg:
+                try:
+                    await finding_msg.delete()
                 except Exception:
                     pass
 
-        if not media:
-            return await self.stop(chat_id)
-
-        _lang = await lang.get_lang(chat_id)
-        msg = await app.send_message(chat_id=chat_id, text=_lang["play_next"])
-        if not media.file_path:
-            media.file_path = await yt.download(media.id, video=media.video)
+            _lang = await lang.get_lang(chat_id)
+            msg = await app.send_message(chat_id=chat_id, text=_lang["play_next"])
             if not media.file_path:
-                await self.stop(chat_id)
-                return await msg.edit_text(
-                    _lang["error_no_file"].format(config.SUPPORT_CHAT)
-                )
+                media.file_path = await yt.download(media.id, video=media.video)
+                if not media.file_path:
+                    await self.stop(chat_id)
+                    try:
+                        await msg.delete()
+                    except Exception:
+                        pass
+                    return False
 
-        media.message_id = msg.id
-        await self.play_media(chat_id, msg, media)
+            media.message_id = msg.id
+            await self.play_media(chat_id, msg, media)
+            return True
+        finally:
+            self._transitioning.discard(chat_id)
 
 
     async def ping(self) -> float:
