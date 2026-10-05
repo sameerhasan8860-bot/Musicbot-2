@@ -44,6 +44,17 @@ async def _autoplay_toggle(_, query: types.CallbackQuery):
                     query.lang["user_no_perms"], show_alert=True
                 )
 
+    current = queue.get_current(chat_id)
+    if (
+        query.message.chat.type != enums.ChatType.PRIVATE
+        and current
+        and current.message_id
+        and current.message_id != query.message.id
+    ):
+        return await query.answer(
+            "This song is no longer active.", show_alert=True
+        )
+
     enabled = not await db.get_autoplay(chat_id)
     await db.set_autoplay(chat_id, enabled)
     await query.answer(f"Autoplay {'ON' if enabled else 'OFF'}")
@@ -107,6 +118,16 @@ async def _controls(_, query: types.CallbackQuery):
     if not await db.get_call(chat_id):
         return await query.answer(query.lang["not_playing"], show_alert=True)
 
+    # Playback controls are valid only on the currently playing song message.
+    # Queue controls are intentionally excluded because their message is not
+    # the player message.
+    if not qaction:
+        current = queue.get_current(chat_id)
+        if not current or current.message_id != query.message.id:
+            return await query.answer(
+                "This song is no longer active.", show_alert=True
+            )
+
     if action == "status":
         return await query.answer()
     await query.answer(query.lang["processing"], show_alert=True)
@@ -135,7 +156,14 @@ async def _controls(_, query: types.CallbackQuery):
         reply = query.lang["play_resumed"].format(user)
 
     elif action == "skip":
-        await anon.play_next(chat_id)
+        moved = await anon.play_next(
+            chat_id, expected_message_id=query.message.id
+        )
+        if not moved:
+            return await query.answer(
+                "This song was already skipped or is no longer active.",
+                show_alert=True,
+            )
         status = query.lang["skipped"]
         reply = query.lang["play_skipped"].format(user)
 
